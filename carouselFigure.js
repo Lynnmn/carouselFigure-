@@ -7,7 +7,7 @@
 				instance = me.data('carouselFigure');
 
 			if(!instance){
-				me.data('carouselFigure', (instance = new carouselFigure(me,options)))
+				me.data('carouselFigure', (instance = new carouselFigure(me,options)));
 			}
 
 			if($.type(options) === 'string') return instance[options]();
@@ -18,9 +18,10 @@
 		selectors: {
 			list: '.list',   // 父元素
 			item: '.item',   // 列表元素
-			active: 'active'  
+			dots: '.dot', // 下标小圆点
+			active: '.active'  
 		},
-		index: 0,   // 当前元素索引
+		index: 1,   // 当前元素索引
 		easing: 'ease',   // 过渡方式
 		duration: 2000,   // loop的时间间隔
 		loop: false,    // 是否循环
@@ -40,6 +41,7 @@
 				return "-" + aPrefix[i].toLowerCase() + "-";
 			}
 		}
+		return false;
 	})(document.createElement(carouselFigure));
 
 	var carouselFigure = (function(){
@@ -56,47 +58,93 @@
 				me.selectors = me.settings.selectors;
 				me.list = me.element.find(me.selectors.list);
 				me.item = me.element.find(me.selectors.item);
+				me.dots = me.element.find(me.selectors.dots);
 
 				me.itemCount = me.itemCount();
+				me.itemWidth = me.itemWidth();
+				me.itemHeight = me.itemHeight();
 				me.index = (me.settings.index > 0 && me.settings.index < me.itemCount) ? me.settings.index : 0;
 
-				me.loop();
+				if(me.index){
+					me.initLayout();
+				}
+
+				me._initEvent();
 			},   
+			initLayout: function(){
+				var me = this;
+				me.list.css({
+					'width': me.itemCount * me.itemWidth + 'px',
+					'height': me.itemHeight + 'px',
+					'display': 'flex',
+					'left': 0,
+					'transition': 'left 1s'
+				});
+			},
 			/* 获取滑动的图片数量 */
 			itemCount: function(){
 				return this.item.length;
 			},
 			/* 获取滑动图片的宽度 */ 
 			itemWidth: function(){
-				return this.item.width();
-			},
-			loop: function(){
 				var me = this;
-				if(me.index < me.itemCount ){
-					i++;
-				}else{
-					i = 1;
-				}
-				me.animate();
+				return me.item.width();
 			},
+			/* 获取滑动图片的宽度 */ 
+			itemHeight: function(){
+				var me = this;
+				return me.item.height();
+			},
+			// loop: function(){
+			// 	var me = this;
+			// 	if(me.index < me.itemCount ){
+			// 		me.index ++;
+			// 	}else{
+			// 		me.index = 1;
+			// 	}
+			// 	me.animate();
+			// },
 			animate: function(){
 				var me = this;
-				me.index++;
 				me.list.css({
-					'left': -me.index*parseInt(me.itemWidth) + 'px'
+					'left': -(me.index-1)*me.itemWidth + 'px'
 				})
+				me.dots.eq(me.index-1).addClass('active').siblings().removeClass('active');
+			},
+			_initEvent: function(){
+				var me = this;
+				var startX, endX;
+				me.list.on('touchstart',function(e){
+					startX = ( e.touches && e.touches[0] ? e.touches[0] : e ).pageX;
+				}).on('touchmove', function(e){
+					endX = ( e.touches && e.touches[0] ? e.touches[0] : e ).pageX;
+				}).on('touchend',function(){
+					if( endX - startX > 50 ){   // 向右滑
+						if(me.index > 1){
+							me.index--;
+						}else{                 // 第一个图片位置，向右滑，回到最后一个图片位置
+							me.index = me.itemCount;
+						}
+					}else if( startX - endX > 50 ){   // 向左滑
 
-				if(me.index > me.itemCount){
-					
-				}
+						if(me.index < me.itemCount){
+							me.index++;
+						}else{               // 最后一个位置向左滑，回到第一个图片位置
+							me.index = 1;
+						}
+						
+					}
+					me.animate(me.index);
+				})
 			}
 		}
-	});
+		return carouselFigure;
+	})();
 
 	$(function(){
 		$('[data-carouselFigure]').carouselFigure();
 	})
 
 
-})(jquery)
+})(jQuery)
 
